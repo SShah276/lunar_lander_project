@@ -1,20 +1,34 @@
 //-------------------------------------------------------------------------
-//    lunar_lander_top.sv                                               --
+//    top.sv                                                             --
 //                                                                       --
-//    First integration milestone top-level skeleton for the ECE 385     --
-//    Lunar Lander project.                                              --
+//    Minimal first-demo integration top for Lunar Lander.               --
 //                                                                       --
-//    Purpose:                                                           --
-//    - keep the video pipeline alive                                    --
-//    - render a tiny temporary player sprite                            --
-//    - show where MicroBlaze / block design signals will connect later  --
+//    Architecture:                                                      --
+//    - MicroBlaze C owns keyboard input and game state                  --
+//    - SystemVerilog only renders                                       --
+//    - lander_x / lander_y are temporary placeholders until the         --
+//      block design exports real game-state outputs                     --
 //-------------------------------------------------------------------------
 
-module lunar_lander_top (
-    input  logic Clk,
+module top (
+    input  logic clk_100MHz,
     input  logic reset_rtl_0,
 
-    // HDMI outputs
+    // USB / SPI / UART ports exported by the Vivado block design wrapper.
+    input  logic [0:0] gpio_usb_int_tri_i,
+    output logic gpio_usb_rst_tri_o,
+    input  logic usb_spi_miso,
+    output logic usb_spi_mosi,
+    output logic usb_spi_sclk,
+    output logic usb_spi_ss,
+    input  logic uart_rtl_0_rxd,
+    output logic uart_rtl_0_txd,
+
+    // Optional debug outputs currently driven by the wrapper.
+    output logic [31:0] gpio_usb_keycode_0_tri_o,
+    output logic [31:0] gpio_usb_keycode_1_tri_o,
+
+    // HDMI outputs.
     output logic hdmi_tmds_clk_n,
     output logic hdmi_tmds_clk_p,
     output logic [2:0] hdmi_tmds_data_n,
@@ -27,6 +41,8 @@ module lunar_lander_top (
 
     logic [9:0] drawX;
     logic [9:0] drawY;
+    logic [9:0] lander_x;
+    logic [9:0] lander_y;
 
     logic hsync;
     logic vsync;
@@ -36,34 +52,46 @@ module lunar_lander_top (
     logic [3:0] green;
     logic [3:0] blue;
 
-    logic [9:0] lander_x;
-    logic [9:0] lander_y;
-
     logic reset_ah;
     assign reset_ah = reset_rtl_0;
 
     // --------------------------------------------------------------------
-    // Temporary stand-in game state for renderer bring-up.
-    // Replace these assignments later with the real MicroBlaze / AXI
-    // register outputs from the Vivado block design.
+    // Vivado block design wrapper.
+    // This currently provides USB, UART, and debug GPIO.
     //
-    // Example future hookup:
+    // Future update:
+    // when the wrapper exports game-state outputs, connect them here:
     // assign lander_x = game_state_lander_x;
     // assign lander_y = game_state_lander_y;
     // --------------------------------------------------------------------
-    assign lander_x = 10'd320;
-    assign lander_y = 10'd120;
+    mb_block_wrapper mb_block_i (
+        .clk_100MHz(clk_100MHz),
+        .reset_rtl_0(~reset_ah),
+        .gpio_usb_int_tri_i(gpio_usb_int_tri_i),
+        .gpio_usb_rst_tri_o(gpio_usb_rst_tri_o),
+        .gpio_usb_keycode_0_tri_o(gpio_usb_keycode_0_tri_o),
+        .gpio_usb_keycode_1_tri_o(gpio_usb_keycode_1_tri_o),
+        .usb_spi_miso(usb_spi_miso),
+        .usb_spi_mosi(usb_spi_mosi),
+        .usb_spi_sclk(usb_spi_sclk),
+        .usb_spi_ss(usb_spi_ss),
+        .uart_rtl_0_rxd(uart_rtl_0_rxd),
+        .uart_rtl_0_txd(uart_rtl_0_txd)
+    );
 
-    // Clock wizard configured with a 1x and 5x clock for HDMI.
+    // Temporary stand-in position values for renderer bring-up.
+    // Replace these with real wrapper outputs later.
+    assign lander_x = 10'd320;
+    assign lander_y = 10'd240;
+
     clk_wiz_0 clk_wiz (
         .clk_out1(clk_25MHz),
         .clk_out2(clk_125MHz),
         .reset(reset_ah),
         .locked(locked),
-        .clk_in1(Clk)
+        .clk_in1(clk_100MHz)
     );
 
-    // VGA timing generator.
     vga_controller vga (
         .pixel_clk(clk_25MHz),
         .reset(reset_ah),
@@ -74,9 +102,6 @@ module lunar_lander_top (
         .drawY(drawY)
     );
 
-    // Temporary renderer input wiring for milestone 1.
-    // Later, lander_x and lander_y will come from memory-mapped registers
-    // written by MicroBlaze software.
     color_mapper color_instance (
         .lander_x(lander_x),
         .lander_y(lander_y),
@@ -87,7 +112,6 @@ module lunar_lander_top (
         .Blue(blue)
     );
 
-    // HDMI output wrapper.
     hdmi_tx_0 vga_to_hdmi (
         .pix_clk(clk_25MHz),
         .pix_clkx5(clk_125MHz),
