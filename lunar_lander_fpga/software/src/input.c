@@ -1,84 +1,30 @@
 #include "input.h"
 
-#if defined(__GNUC__)
-#define LANDER_WEAK __attribute__((weak))
-#else
-#define LANDER_WEAK
-#endif
+// Include the full USB driver chain IN ORDER here
+// This is the only file that needs to know about BOOT_KBD_REPORT internals
+#include "lw_usb/GenericTypeDefs.h"
+#include "lw_usb/GenericMacros.h"
+#include "lw_usb/USB.h"
+#include "lw_usb/HID.h"
 
-enum {
-    HID_KEY_A = 0x04,
-    HID_KEY_D = 0x07,
-    HID_KEY_W = 0x1A
-};
+int input_thrust = 0;
+int input_left   = 0;
+int input_right  = 0;
+int input_reset  = 0;
 
-static bool report_has_key(const uint8_t keycodes[6], uint8_t key)
-{
-    int index;
-
-    for (index = 0; index < 6; ++index) {
-        if (keycodes[index] == key) {
-            return true;
-        }
+int key_is_pressed(unsigned char keycodes[6], unsigned char key) {
+    int i;
+    for (i = 0; i < 6; i++) {
+        if (keycodes[i] == key) return 1;
     }
-
-    return false;
+    return 0;
 }
 
-LANDER_WEAK bool input_platform_read_hid_report(uint8_t keycodes[6])
-{
-    int index;
-
-    for (index = 0; index < 6; ++index) {
-        keycodes[index] = 0U;
-    }
-
-    return false;
-}
-
-void input_init(void)
-{
-}
-
-void input_clear(LanderInput *input)
-{
-    if (input == 0) {
-        return;
-    }
-
-    input->thrust_on = false;
-    input->rotate_direction = 0;
-}
-
-void input_decode_hid_report(const uint8_t keycodes[6], LanderInput *input)
-{
-    if ((keycodes == 0) || (input == 0)) {
-        return;
-    }
-
-    input_clear(input);
-    input->thrust_on = report_has_key(keycodes, HID_KEY_W);
-
-    if (report_has_key(keycodes, HID_KEY_A)) {
-        input->rotate_direction -= 1;
-    }
-
-    if (report_has_key(keycodes, HID_KEY_D)) {
-        input->rotate_direction += 1;
-    }
-}
-
-void input_poll(LanderInput *input)
-{
-    uint8_t keycodes[6];
-
-    if (input == 0) {
-        return;
-    }
-
-    input_clear(input);
-
-    if (input_platform_read_hid_report(keycodes)) {
-        input_decode_hid_report(keycodes, input);
-    }
+// Now takes raw keycode array instead of BOOT_KBD_REPORT*
+// This keeps HID types out of the header
+void input_update(unsigned char keycodes[6]) {
+    input_thrust = key_is_pressed(keycodes, KEY_W);
+    input_left   = key_is_pressed(keycodes, KEY_A);
+    input_right  = key_is_pressed(keycodes, KEY_D);
+    input_reset  = key_is_pressed(keycodes, KEY_R);
 }

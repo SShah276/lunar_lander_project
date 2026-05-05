@@ -1,49 +1,21 @@
 #ifndef GAME_LOGIC_H
 #define GAME_LOGIC_H
 
-#include <stdbool.h>
+#define STATE_PLAYING  0
+#define STATE_LANDED   1
+#define STATE_CRASHED  2
 
-typedef enum {
-    LANDER_STATE_FLYING = 0,
-    LANDER_STATE_LANDED = 1,
-    LANDER_STATE_CRASHED = 2
-} LanderGameState;
+#define MAX_FUEL         1000
+#define FUEL_BURN_RATE   1
 
-typedef struct {
-    bool thrust_on;
-    int rotate_direction;
-} LanderInput;
+#define GROUND_Y         450
+#define SAFE_VEL_Y       80
+#define SAFE_VEL_X       60
 
-typedef struct {
-    float x;
-    float y;
-    float vx;
-    float vy;
-    float angle_deg;
-    float fuel;
-    LanderGameState state;
-} LanderState;
+extern int game_state;
+extern int fuel;
 
-typedef struct {
-    float gravity;
-    float thrust_accel;
-    float rotation_speed_deg;
-    float fuel_burn_rate;
-    float ground_y;
-    float min_x;
-    float max_x;
-    float safe_horizontal_speed;
-    float safe_vertical_speed;
-    float safe_angle_deg;
-} LanderConfig;
-
-void lander_init(LanderState *state);
-void lander_get_default_config(LanderConfig *config);
-void game_logic_step(
-    LanderState *state,
-    const LanderInput *input,
-    const LanderConfig *config,
-    float dt_seconds
-);
+void game_logic_init(void);
+void game_logic_update(void);
 
 #endif

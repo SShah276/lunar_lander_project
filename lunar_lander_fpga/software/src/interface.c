@@ -1,67 +1,42 @@
 #include "interface.h"
+#include "game_logic.h"   // needs game_state, fuel
+#include "physics.h"      // needs pos_x, pos_y, thrust_on
 
-#if defined(__has_include)
-#if __has_include("xil_io.h")
-#include "xil_io.h"
-#define LANDER_HAVE_XIL_IO 1
-#endif
-#endif
+XGpio Gpio_keycode;
+XGpio Gpio_lander;
 
-static uint32_t round_to_u32(float value)
-{
-    if (value <= 0.0f) {
-        return 0U;
-    }
+void interface_init(void) {
+    // Keycode GPIO (existing — sends keycodes to hex display + hardware)
+    XGpio_Initialize(&Gpio_keycode, XPAR_GPIO_USB_KEYCODE_DEVICE_ID);
+    XGpio_SetDataDirection(&Gpio_keycode, 1, 0x00000000);
+    XGpio_SetDataDirection(&Gpio_keycode, 2, 0x00000000);
 
-    return (uint32_t)(value + 0.5f);
+    // Lander position GPIO (new — sends position to color_mapper)
+    // ⚠️ Replace with your actual device ID from xparameters.h
+    XGpio_Initialize(&Gpio_lander, XPAR_GPIO_LANDER_POS_DEVICE_ID);
+    XGpio_SetDataDirection(&Gpio_lander, 1, 0x00000000);
+    XGpio_SetDataDirection(&Gpio_lander, 2, 0x00000000);
 }
 
-static uint32_t round_to_i32_bits(float value)
-{
-    int32_t signed_value;
+void send_lander_to_hw(void) {
+    // Convert fixed-point to pixel coordinates
+    unsigned int pixel_x = (pos_x >> FIXED_SHIFT) & 0x3FF;
+    unsigned int pixel_y = (pos_y >> FIXED_SHIFT) & 0x3FF;
 
-    if (value >= 0.0f) {
-        signed_value = (int32_t)(value + 0.5f);
-    } else {
-        signed_value = (int32_t)(value - 0.5f);
-    }
+    // Channel 1: pack X and Y into one 32-bit word
+    // Bits [9:0]  = X (0-639)
+    // Bits [19:10] = Y (0-479)
+    u32 position_word = (pixel_y << 10) | pixel_x;
 
-    return (uint32_t)signed_value;
-}
+    // Channel 2: game status
+    // Bits [25:24] = game_state (0=playing, 1=landed, 2=crashed)
+    // Bit  [16]    = thrust_on
+    // Bits [7:0]   = fuel scaled to 0-255
+    u32 fuel_scaled = ((unsigned int)fuel * 255) / MAX_FUEL;
+    u32 status_word = ((game_state & 0x3)  << 24) |
+                      ((thrust_on  & 0x1)  << 16) |
+                      (fuel_scaled & 0xFF);
 
-static void mmio_write32(uintptr_t address, uint32_t value)
-{
-#ifdef LANDER_HAVE_XIL_IO
-    Xil_Out32(address, value);
-#else
-    *(volatile uint32_t *)address = value;
-#endif
-}
-
-void interface_write_lander_state(uintptr_t base_addr, const LanderState *state)
-{
-    if ((base_addr == 0U) || (state == 0)) {
-        return;
-    }
-
-    mmio_write32(
-        base_addr + GAME_STATE_REG_LANDER_X_OFFSET,
-        round_to_u32(state->x)
-    );
-    mmio_write32(
-        base_addr + GAME_STATE_REG_LANDER_Y_OFFSET,
-        round_to_u32(state->y)
-    );
-    mmio_write32(
-        base_addr + GAME_STATE_REG_ANGLE_OFFSET,
-        round_to_i32_bits(state->angle_deg)
-    );
-    mmio_write32(
-        base_addr + GAME_STATE_REG_FUEL_OFFSET,
-        round_to_u32(state->fuel)
-    );
-    mmio_write32(
-        base_addr + GAME_STATE_REG_STATE_OFFSET,
-        (uint32_t)state->state
-    );
+    XGpio_DiscreteWrite(&Gpio_lander, 1, position_word);
+    XGpio_DiscreteWrite(&Gpio_lander, 2, status_word);
 }

@@ -1,63 +1,62 @@
 #include "physics.h"
+#include "input.h"       // needs thrust, move_left, move_right
+#include "game_logic.h"  // needs game_state
 
-static float clamp_float(float value, float min_value, float max_value)
-{
-    if (value < min_value) {
-        return min_value;
-    }
+// State variables — these are THE source of truth for position/velocity
+int pos_x, pos_y;
+int vel_x, vel_y;
+int thrust_on;
 
-    if (value > max_value) {
-        return max_value;
-    }
-
-    return value;
+void physics_init(void) {
+    pos_x     = X_START;
+    pos_y     = Y_START;
+    vel_x     = 0;
+    vel_y     = 0;
+    thrust_on = 0;
 }
 
-void physics_update(
-    LanderState *state,
-    const LanderInput *input,
-    const LanderConfig *config,
-    float dt_seconds
-)
-{
-    float accel_x;
-    float accel_y;
+void physics_update(void) {
+    // Freeze if game is over
+    if (game_state != STATE_PLAYING) return;
 
-    if ((state == 0) || (input == 0) || (config == 0) || (dt_seconds <= 0.0f)) {
-        return;
+    // Read current input state (set by input.c each frame)
+    int thrusting = input_thrust && (fuel > 0);
+    int going_left  = input_left  && (fuel > 0);
+    int going_right = input_right && (fuel > 0);
+
+    // --- Vertical ---
+    vel_y += GRAVITY;
+
+    if (thrusting) {
+        vel_y    -= THRUST_POWER;
+        thrust_on = 1;
+    } else {
+        thrust_on = 0;
     }
 
-    accel_x = 0.0f;
-    accel_y = config->gravity;
+    if (vel_y > MAX_VEL_Y)  vel_y = MAX_VEL_Y;
+    if (vel_y < MIN_VEL_Y)  vel_y = MIN_VEL_Y;
 
-    /*
-     * Gravity-only test mode:
-     * leave thrust, rotation, and fuel consumption disabled so the
-     * renderer can be validated with a simple falling object.
-     *
-     * state->angle_deg +=
-     *     (float)input->rotate_direction * config->rotation_speed_deg * dt_seconds;
-     * state->angle_deg = normalize_angle(state->angle_deg);
-     *
-     * if (input->thrust_on && (state->fuel > 0.0f)) {
-     *     const float requested_fuel = config->fuel_burn_rate * dt_seconds;
-     *     const float used_fuel =
-     *         (requested_fuel < state->fuel) ? requested_fuel : state->fuel;
-     *     const float thrust_scale =
-     *         (requested_fuel > 0.0f) ? (used_fuel / requested_fuel) : 0.0f;
-     *     const float angle_rad = state->angle_deg * (LANDER_PI / 180.0f);
-     *     const float thrust_accel = config->thrust_accel * thrust_scale;
-     *
-     *     accel_x += sinf(angle_rad) * thrust_accel;
-     *     accel_y -= cosf(angle_rad) * thrust_accel;
-     *     state->fuel -= used_fuel;
-     * }
-     */
+    // --- Horizontal ---
+    if (going_left)  vel_x -= H_THRUST_POWER;
+    if (going_right) vel_x += H_THRUST_POWER;
 
-    state->vx += accel_x * dt_seconds;
-    state->vy += accel_y * dt_seconds;
-    state->x += state->vx * dt_seconds;
-    state->y += state->vy * dt_seconds;
+    if (!going_left && !going_right) {
+        if      (vel_x >  H_DRAG) vel_x -= H_DRAG;
+        else if (vel_x < -H_DRAG) vel_x += H_DRAG;
+        else                       vel_x  = 0;
+    }
 
-    state->x = clamp_float(state->x, config->min_x, config->max_x);
+    if (vel_x > MAX_VEL_X)  vel_x = MAX_VEL_X;
+    if (vel_x < MIN_VEL_X)  vel_x = MIN_VEL_X;
+
+    // --- Position ---
+    pos_x += vel_x;
+    pos_y += vel_y;
+
+    // --- Boundaries ---
+    if (pos_y < Y_MIN_FP) { pos_y = Y_MIN_FP; vel_y = 0; }
+    if (pos_y > Y_MAX_FP) { pos_y = Y_MAX_FP; vel_y = 0; vel_x = 0; }
+    if (pos_x < X_MIN_FP) { pos_x = X_MIN_FP; vel_x = 0; }
+    if (pos_x > X_MAX_FP) { pos_x = X_MAX_FP; vel_x = 0; }
 }

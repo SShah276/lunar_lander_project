@@ -1,81 +1,50 @@
 #include "game_logic.h"
-
 #include "physics.h"
+#include "input.h"
 
-static float absolute_value(float value)
-{
-    return (value < 0.0f) ? -value : value;
+#include <stdio.h>
+
+int game_state = STATE_PLAYING;
+int fuel       = MAX_FUEL;
+
+void game_logic_init(void) {
+    game_state = STATE_PLAYING;
+    fuel       = MAX_FUEL;
 }
 
-static void resolve_touchdown(LanderState *state, const LanderConfig *config)
-{
-    const bool safe_horizontal =
-        absolute_value(state->vx) <= config->safe_horizontal_speed;
-    const bool safe_vertical =
-        absolute_value(state->vy) <= config->safe_vertical_speed;
-    const bool safe_angle =
-        absolute_value(state->angle_deg) <= config->safe_angle_deg;
-
-    state->y = config->ground_y;
-    state->vx = 0.0f;
-    state->vy = 0.0f;
-    state->state =
-        (safe_horizontal && safe_vertical && safe_angle)
-            ? LANDER_STATE_LANDED
-            : LANDER_STATE_CRASHED;
-}
-
-void lander_init(LanderState *state)
-{
-    if (state == 0) {
+void game_logic_update(void) {
+    if (input_reset) {
+        game_logic_init();
+        physics_init();
         return;
     }
 
-    state->x = 320.0f;
-    state->y = 60.0f;
-    state->vx = 0.0f;
-    state->vy = 0.0f;
-    state->angle_deg = 0.0f;
-    state->fuel = 100.0f;
-    state->state = LANDER_STATE_FLYING;
-}
-
-void lander_get_default_config(LanderConfig *config)
-{
-    if (config == 0) {
-        return;
+    if (game_state == STATE_PLAYING) {
+        if (input_thrust && fuel > 0) {
+            fuel -= FUEL_BURN_RATE;
+            if (fuel < 0) fuel = 0;
+        }
     }
 
-    config->gravity = 18.0f;
-    config->thrust_accel = 30.0f;
-    config->rotation_speed_deg = 120.0f;
-    config->fuel_burn_rate = 18.0f;
-    config->ground_y = 430.0f;
-    config->min_x = 0.0f;
-    config->max_x = 639.0f;
-    config->safe_horizontal_speed = 18.0f;
-    config->safe_vertical_speed = 24.0f;
-    config->safe_angle_deg = 12.0f;
-}
+    if (game_state != STATE_PLAYING) return;
 
-void game_logic_step(
-    LanderState *state,
-    const LanderInput *input,
-    const LanderConfig *config,
-    float dt_seconds
-)
-{
-    if ((state == 0) || (input == 0) || (config == 0)) {
-        return;
-    }
+    int pixel_y = pos_y >> FIXED_SHIFT;
 
-    if (state->state != LANDER_STATE_FLYING) {
-        return;
-    }
+    if (pixel_y + LANDER_SIZE >= GROUND_Y) {
+        pos_y = (GROUND_Y - LANDER_SIZE) << FIXED_SHIFT;
 
-    physics_update(state, input, config, dt_seconds);
+        int abs_vel_y = vel_y < 0 ? -vel_y : vel_y;
+        int abs_vel_x = vel_x < 0 ? -vel_x : vel_x;
 
-    if (state->y >= config->ground_y) {
-        resolve_touchdown(state, config);
+        if (abs_vel_y <= SAFE_VEL_Y && abs_vel_x <= SAFE_VEL_X) {
+            game_state = STATE_LANDED;
+            xil_printf("*** SAFE LANDING ***\n");
+        } else {
+            game_state = STATE_CRASHED;
+            xil_printf("*** CRASHED ***\n");
+        }
+
+        vel_x = 0;
+        vel_y = 0;
     }
 }
