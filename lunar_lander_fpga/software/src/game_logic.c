@@ -3,7 +3,7 @@
 #include "input.h"
 #include "terrain.h"
 
-#include <stdio.h>    // for xil_printf
+#include <xil_printf.h>
 
 // ============================================================
 // STATE — owned by this file
@@ -57,17 +57,21 @@ void game_logic_update(void) {
     int pixel_y = pos_y >> FIXED_SHIFT;
 
     // Get terrain height at lander's X position
-    int ground_y = terrain_get_y(pixel_x);
+    int ground_y = terrain_y_at_x(pixel_x);
 
-    // Check if lander bottom has touched terrain
-    // Lander bottom = pixel_y + LANDER_SIZE
-    if (pixel_y + LANDER_SIZE >= ground_y) {
+    // Check if the visible lander body/feet have touched terrain.
+    // Flame rows are not part of the collision box.
+    if (pixel_y + LANDER_BODY_BOTTOM_OFFSET >= ground_y) {
 
         // Snap to ground
-        pos_y = (ground_y - LANDER_SIZE) << FIXED_SHIFT;
+        pos_y = (ground_y - LANDER_BODY_BOTTOM_OFFSET) << FIXED_SHIFT;
 
         // Check if we're over a landing pad
-        int pad_idx = terrain_get_pad(pixel_x);
+        const LandingPad *pad = terrain_pad_at_x(pixel_x);
+        int pad_idx = -1;
+        if (pad != 0) {
+            pad_idx = (int)(pad - terrain_current_pads());
+        }
 
         // Get absolute velocities for comparison
         int abs_vel_y = vel_y < 0 ? -vel_y : vel_y;
@@ -85,12 +89,11 @@ void game_logic_update(void) {
                 landed_on_pad = pad_idx;
 
                 // Score = base + fuel bonus + pad multiplier
-                score = (BASE_SCORE + fuel * FUEL_BONUS)
-                        * pads[pad_idx].score_mult;
+                score = (BASE_SCORE + fuel * FUEL_BONUS) * pad->multiplier;
 
                 xil_printf("=== SAFE LANDING! ===\n");
                 xil_printf("Pad: %d  Multiplier: %dx\n",
-                           pad_idx, pads[pad_idx].score_mult);
+                           pad_idx, pad->multiplier);
                 xil_printf("Score: %d  Fuel left: %d\n", score, fuel);
                 xil_printf("vel_y=%d  vel_x=%d  angle=%d\n",
                            vel_y, vel_x, angle_deg);  // was: angle

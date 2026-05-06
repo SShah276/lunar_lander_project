@@ -27,18 +27,22 @@
 #define MAX_VEL_X         256        // horizontal speed cap
 #define MIN_VEL_X         (-256)
 
-// Lander screen size
-#define LANDER_SIZE       15         // half-width/height of sprite
+// Lander sprite extents relative to the rendered center point.
+// Flame rows are visual-only; collision uses the body/feet bottom.
+#define LANDER_SIZE       15         // compatibility alias for legacy checks
+#define LANDER_HALF_W     8
+#define LANDER_TOP_OFFSET 10
+#define LANDER_BODY_BOTTOM_OFFSET 4
 
 // Starting position (fixed-point)
 #define X_START           (320 << FIXED_SHIFT)
 #define Y_START           (60  << FIXED_SHIFT)
 
 // Screen boundary limits (fixed-point)
-#define X_MIN_FP          (LANDER_SIZE << FIXED_SHIFT)
-#define X_MAX_FP          ((639 - LANDER_SIZE) << FIXED_SHIFT)
-#define Y_MIN_FP          (LANDER_SIZE << FIXED_SHIFT)
-#define Y_MAX_FP          ((479 - LANDER_SIZE) << FIXED_SHIFT)  // bottom boundary
+#define X_MIN_FP          (LANDER_HALF_W << FIXED_SHIFT)
+#define X_MAX_FP          ((639 - LANDER_HALF_W) << FIXED_SHIFT)
+#define Y_MIN_FP          (LANDER_TOP_OFFSET << FIXED_SHIFT)
+#define Y_MAX_FP          ((479 - LANDER_BODY_BOTTOM_OFFSET) << FIXED_SHIFT)
 
 // ============================================================
 // SIN/COS LOOKUP TABLE
