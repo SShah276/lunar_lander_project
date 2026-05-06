@@ -1,43 +1,75 @@
 #ifndef PHYSICS_H
 #define PHYSICS_H
 
-// Fixed-point shift — 8 fractional bits (multiply pixels by 256)
-#define FIXED_SHIFT     8
+// ============================================================
+// FIXED-POINT ARITHMETIC
+// All positions and velocities use 8 fractional bits.
+// Real pixel position = value >> FIXED_SHIFT
+// Store as integer: 320 pixels = 320 << 8 = 81920
+// ============================================================
 
-// Physics constants. These are intentionally modest fixed-point values so the
-// lander falls over several seconds and can hover with sustained thrust.
-#define GRAVITY         2
-#define THRUST_POWER    6
-#define H_THRUST_POWER  2
-#define H_DRAG          1
-#define MAX_VEL_Y       400
-#define MIN_VEL_Y       (-400)
-#define MAX_VEL_X       256
-#define MIN_VEL_X       (-256)
+#define FIXED_SHIFT       8
+#define FIXED_ONE         (1 << FIXED_SHIFT)   // = 256
 
-// Screen limits in fixed-point
-#define LANDER_SIZE     15
-#define X_MIN_FP        (LANDER_SIZE << FIXED_SHIFT)
-#define X_MAX_FP        ((639 - LANDER_SIZE) << FIXED_SHIFT)
-#define Y_MIN_FP        (LANDER_SIZE << FIXED_SHIFT)
-#define Y_MAX_FP        ((479 - LANDER_SIZE) << FIXED_SHIFT)
+// ============================================================
+// PHYSICS CONSTANTS
+// Tuned to feel good at the USB polling rate.
+// Adjust GRAVITY and THRUST if movement feels too fast/slow.
+// ============================================================
 
-// Starting position
-#define X_START         (320 << FIXED_SHIFT)
-#define Y_START         (60  << FIXED_SHIFT)
+#define GRAVITY           2          // lighter gravity, more forgiving
+#define THRUST_POWER      6          // slightly less explosive thrust
+#define H_THRUST_POWER    2          // low — prevents slingshot effect
+#define H_DRAG            1          // drag — stops horizontal drift
+#define MAX_VEL_Y         400        // terminal velocity
+#define MIN_VEL_Y         (-400)
+#define MAX_VEL_X         256        // horizontal speed cap
+#define MIN_VEL_X         (-256)
 
-// Game state variables — defined in physics.c, readable everywhere
-extern int pos_x, pos_y;
-extern int vel_x, vel_y;
-extern int thrust_on;
-extern int angle_deg;
-extern int angle_idx;
+// Lander screen size
+#define LANDER_SIZE       15         // half-width/height of sprite
 
-extern const int sin_table[91];
+// Starting position (fixed-point)
+#define X_START           (320 << FIXED_SHIFT)
+#define Y_START           (60  << FIXED_SHIFT)
+
+// Screen boundary limits (fixed-point)
+#define X_MIN_FP          (LANDER_SIZE << FIXED_SHIFT)
+#define X_MAX_FP          ((639 - LANDER_SIZE) << FIXED_SHIFT)
+#define Y_MIN_FP          (LANDER_SIZE << FIXED_SHIFT)
+#define Y_MAX_FP          ((479 - LANDER_SIZE) << FIXED_SHIFT)  // bottom boundary
+
+// ============================================================
+// SIN/COS LOOKUP TABLE
+// Rotation needs sin/cos but MicroBlaze has no FPU.
+// We use a lookup table scaled by 256.
+// sin_table[angle_degrees + 45] gives sin * 256
+// Valid for -45 to +45 degrees (our MAX_ANGLE range).
+// ============================================================
+extern const int sin_table[91];   // index 0..90 = -45..+45 degrees
 extern const int cos_table[91];
 
-// Functions
+// Convert angle (-45 to +45) to table index
+#define ANGLE_TO_IDX(a)   ((a) + 45)
+
+// ============================================================
+// STATE VARIABLES
+// Defined in physics.c, extern here for other modules to read.
+// Only physics.c should WRITE to these.
+// ============================================================
+extern int pos_x;          // fixed-point position
+extern int pos_y;
+extern int vel_x;          // fixed-point velocity
+extern int vel_y;
+extern int angle_deg;      // degrees: -15=left tilt, 0=upright, +15=right tilt
+extern int angle_idx;      // sprite index: 0=left, 1=upright, 2=right
+extern int thrust_on;      // 1 if thrusting this frame, 0 otherwise
+extern int fuel;           // current fuel level, read by physics for thrust gating
+
+// ============================================================
+// FUNCTIONS
+// ============================================================
 void physics_init(void);
-void physics_update(void);    // Note: no argument — reads from input.h
+void physics_update(void);   // call once per game frame
 
 #endif
