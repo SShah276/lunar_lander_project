@@ -45,7 +45,9 @@ module lander_sprite (
     logic sample_in_bounds;
     logic signed [7:0] angle_deg;
     logic signed [8:0] sin_q8, cos_q8;
-    logic signed [19:0] src_x_q8, src_y_q8;
+    logic signed [19:0] draw_dx_wide, draw_dy_wide;
+    logic signed [19:0] sin_q8_wide, cos_q8_wide;
+    logic signed [39:0] src_x_q8, src_y_q8;
     
     // 2-bit color per pixel: 0=transparent, 1=white, 2=gray, 3=orange(engine)
     // 16 pixels wide × 20 pixels tall = 20 rows
@@ -134,10 +136,14 @@ module lander_sprite (
 
     assign draw_dx = $signed({1'b0, DrawX}) - $signed({1'b0, BallX});
     assign draw_dy = $signed({1'b0, DrawY}) - $signed({1'b0, BallY});
+    assign draw_dx_wide = {{9{draw_dx[10]}}, draw_dx};
+    assign draw_dy_wide = {{9{draw_dy[10]}}, draw_dy};
+    assign sin_q8_wide = {{11{sin_q8[8]}}, sin_q8};
+    assign cos_q8_wide = {{11{cos_q8[8]}}, cos_q8};
 
     // Inverse-rotate the current screen pixel back into unrotated sprite space.
-    assign src_x_q8 = (draw_dx * cos_q8) + (draw_dy * sin_q8);
-    assign src_y_q8 = (draw_dy * cos_q8) - (draw_dx * sin_q8);
+    assign src_x_q8 = (draw_dx_wide * cos_q8_wide) + (draw_dy_wide * sin_q8_wide);
+    assign src_y_q8 = (draw_dy_wide * cos_q8_wide) - (draw_dx_wide * sin_q8_wide);
     assign src_x = src_x_q8 >>> 8;
     assign src_y = src_y_q8 >>> 8;
 

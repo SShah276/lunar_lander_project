@@ -13,6 +13,8 @@ int angle_deg = 0;
 int angle_idx = 1;
 int thrust_on = 0;
 
+static int angle_fp = 0;
+
 // ============================================================
 // SIN/COS LOOKUP TABLE
 // Precomputed: sin(degrees) * 256, for -45 to +45 degrees
@@ -45,6 +47,7 @@ void physics_init(void) {
     vel_x     = 0;
     vel_y     = 0;
     thrust_on = 0;
+    angle_fp  = 0;
     angle_deg = 0;
     angle_idx = 1;
 }
@@ -60,13 +63,19 @@ void physics_update(void) {
 
     // --- Rotation ---
     if (rotating_left && !rotating_right) {
-        angle_deg -= ROTATION_STEP;
+        angle_fp -= ROTATION_STEP_FP;
     } else if (rotating_right && !rotating_left) {
-        angle_deg += ROTATION_STEP;
+        angle_fp += ROTATION_STEP_FP;
     }
 
-    if (angle_deg < -MAX_TILT_DEG) angle_deg = -MAX_TILT_DEG;
-    if (angle_deg >  MAX_TILT_DEG) angle_deg =  MAX_TILT_DEG;
+    if (angle_fp < -(MAX_TILT_DEG << FIXED_SHIFT)) {
+        angle_fp = -(MAX_TILT_DEG << FIXED_SHIFT);
+    }
+    if (angle_fp > (MAX_TILT_DEG << FIXED_SHIFT)) {
+        angle_fp = (MAX_TILT_DEG << FIXED_SHIFT);
+    }
+
+    angle_deg = angle_fp / FIXED_ONE;
 
     if (angle_deg < -7) {
         angle_idx = 0;
