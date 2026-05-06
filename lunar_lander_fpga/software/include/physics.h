@@ -4,15 +4,16 @@
 // Fixed-point shift — 8 fractional bits (multiply pixels by 256)
 #define FIXED_SHIFT     8
 
-// Physics constants (matching your old lander.sv values)
-#define GRAVITY         4
-#define THRUST_POWER    10
-#define H_THRUST_POWER  6
+// Physics constants. These are intentionally modest fixed-point values so the
+// lander falls over several seconds and can hover with sustained thrust.
+#define GRAVITY         2
+#define THRUST_POWER    6
+#define H_THRUST_POWER  2
 #define H_DRAG          1
-#define MAX_VEL_Y       768
-#define MIN_VEL_Y       (-768)
-#define MAX_VEL_X       512
-#define MIN_VEL_X       (-512)
+#define MAX_VEL_Y       400
+#define MIN_VEL_Y       (-400)
+#define MAX_VEL_X       256
+#define MIN_VEL_X       (-256)
 
 // Screen limits in fixed-point
 #define LANDER_SIZE     15
@@ -29,6 +30,11 @@
 extern int pos_x, pos_y;
 extern int vel_x, vel_y;
 extern int thrust_on;
+extern int angle_deg;
+extern int angle_idx;
+
+extern const int sin_table[91];
+extern const int cos_table[91];
 
 // Functions
 void physics_init(void);
