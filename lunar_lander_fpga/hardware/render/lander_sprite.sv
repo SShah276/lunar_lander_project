@@ -25,17 +25,27 @@ module lander_sprite (
     output logic        sprite_on,
     output logic [3:0]  sprite_red, sprite_green, sprite_blue,
     // Thrust input so we can draw flame
-    input  logic        thrust_active
+    input  logic        thrust_active,
+    input  logic [6:0]  angle_shifted
 );
 
     // Sprite dimensions
     parameter SPRITE_W = 16;
     parameter SPRITE_H = 20;
+    parameter SPRITE_CENTER_X = 8;
+    parameter SPRITE_CENTER_Y = 10;
+    parameter ROT_BOUNDS_HALF = 20;
     
     // Relative position of current pixel within sprite
+    logic signed [10:0] draw_dx, draw_dy;
+    logic signed [10:0] src_x, src_y;
     logic signed [10:0] rel_x, rel_y;
     logic [4:0] sprite_col, sprite_row;  // unsigned index into sprite
     logic in_sprite_bounds;
+    logic sample_in_bounds;
+    logic signed [7:0] angle_deg;
+    logic signed [8:0] sin_q8, cos_q8;
+    logic signed [19:0] src_x_q8, src_y_q8;
     
     // 2-bit color per pixel: 0=transparent, 1=white, 2=gray, 3=orange(engine)
     // 16 pixels wide × 20 pixels tall = 20 rows
@@ -99,17 +109,52 @@ module lander_sprite (
         sprite_rom[22] = 32'b00000000000000000000000000000000;
         sprite_rom[23] = 32'b00000000000000000000000000000000;
     end
-    
-    // Calculate relative position
-    assign rel_x = {1'b0, DrawX} - {1'b0, BallX} + 11'd8;  // center offset (half of 16)
-    assign rel_y = {1'b0, DrawY} - {1'b0, BallY} + 11'd10;  // center offset
-    
-    assign sprite_col = rel_x[4:0];
-    assign sprite_row = rel_y[4:0];
+
+    function automatic signed [8:0] approx_sin_q8;
+        input signed [7:0] deg;
+        begin
+            // Valid for the game range, -45..+45 degrees. Scale is 256.
+            approx_sin_q8 = deg * 4;
+        end
+    endfunction
+
+    function automatic signed [8:0] approx_cos_q8;
+        input signed [7:0] deg;
+        logic signed [7:0] abs_deg;
+        begin
+            abs_deg = (deg < 0) ? -deg : deg;
+            // Linear fit from cos(0)=256 to cos(45)=181, good enough for sprite sampling.
+            approx_cos_q8 = 9'sd256 - ((abs_deg * 9'sd107) >>> 6);
+        end
+    endfunction
+
+    assign angle_deg = $signed({1'b0, angle_shifted}) - 8'sd45;
+    assign sin_q8 = approx_sin_q8(angle_deg);
+    assign cos_q8 = approx_cos_q8(angle_deg);
+
+    assign draw_dx = $signed({1'b0, DrawX}) - $signed({1'b0, BallX});
+    assign draw_dy = $signed({1'b0, DrawY}) - $signed({1'b0, BallY});
+
+    // Inverse-rotate the current screen pixel back into unrotated sprite space.
+    assign src_x_q8 = (draw_dx * cos_q8) + (draw_dy * sin_q8);
+    assign src_y_q8 = (draw_dy * cos_q8) - (draw_dx * sin_q8);
+    assign src_x = src_x_q8 >>> 8;
+    assign src_y = src_y_q8 >>> 8;
+
+    assign rel_x = src_x + SPRITE_CENTER_X;
+    assign rel_y = src_y + SPRITE_CENTER_Y;
     
     // Check if we're within sprite bounds
-    assign in_sprite_bounds = (rel_x >= 0) && (rel_x < SPRITE_W) && 
-                               (rel_y >= 0) && (rel_y < (thrust_active ? 20 : 15));
+    assign sample_in_bounds = (draw_dx >= -ROT_BOUNDS_HALF) &&
+                              (draw_dx <=  ROT_BOUNDS_HALF) &&
+                              (draw_dy >= -ROT_BOUNDS_HALF) &&
+                              (draw_dy <=  ROT_BOUNDS_HALF) &&
+                              (rel_x >= 0) && (rel_x < SPRITE_W) &&
+                              (rel_y >= 0) && (rel_y < (thrust_active ? SPRITE_H : 15));
+    assign in_sprite_bounds = sample_in_bounds;
+
+    assign sprite_col = sample_in_bounds ? rel_x[4:0] : 5'd0;
+    assign sprite_row = sample_in_bounds ? rel_y[4:0] : 5'd0;
     
     // Look up pixel color from ROM
     // Each pixel is 2 bits, pixel[15] is at bits [31:30], pixel[0] is at bits [1:0]

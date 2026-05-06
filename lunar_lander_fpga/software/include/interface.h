@@ -23,10 +23,10 @@ extern XGpio Gpio_lander;
 // Gpio_lander Channel 2 (HUD/status):
 //   [31:30] = game_state
 //   [29]    = thrust_on
-//   [28:24] = angle (shifted +45)
-//   [23:16] = fuel 0-255
-//   [15:8]  = vert velocity 0-255
-//   [7:0]   = horiz velocity 0-255
+//   [28:22] = angle (shifted +45, 0..90)
+//   [21:14] = fuel 0-255
+//   [13:6]  = vert velocity 0-255
+//   [5:0]   = horiz velocity 0-63
 // ============================================================
 
 // Initialize all GPIOs

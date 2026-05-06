@@ -3,8 +3,8 @@ module color_mapper (
     input  logic [9:0]  DrawX, DrawY,
     input  logic [9:0]  Ball_size,
     // Full status word from MicroBlaze
-    // [31:30] = game_state  [29] = thrust  [28:24] = angle
-    // [23:16] = fuel 0-255  [15:8] = vel_y 0-255  [7:0] = vel_x 0-255
+    // [31:30] = game_state  [29] = thrust  [28:22] = angle + 45
+    // [21:14] = fuel 0-255  [13:6] = vel_y 0-255  [5:0] = vel_x 0-63
     input  logic [31:0] status_word,
     output logic [3:0]  Red, Green, Blue
 );
@@ -14,17 +14,17 @@ module color_mapper (
     // ============================================================
     logic [1:0]  game_state;
     logic        thrust_active;
-    logic [5:0]  angle_shifted;    // angle + 45, so 0-90
+    logic [6:0]  angle_shifted;    // angle + 45, so 0-90
     logic [7:0]  fuel_scaled;      // 0=empty, 255=full
     logic [7:0]  vel_y_scaled;     // 0=slow, 255=fast
     logic [7:0]  vel_x_scaled;
 
     assign game_state    = status_word[31:30];
     assign thrust_active = status_word[29];
-    assign angle_shifted = status_word[28:24];
-    assign fuel_scaled   = status_word[23:16];
-    assign vel_y_scaled  = status_word[15:8];
-    assign vel_x_scaled  = status_word[7:0];
+    assign angle_shifted = status_word[28:22];
+    assign fuel_scaled   = status_word[21:14];
+    assign vel_y_scaled  = status_word[13:6];
+    assign vel_x_scaled  = {2'b00, status_word[5:0]};
 
     // ============================================================
     // TERRAIN
@@ -121,7 +121,8 @@ module color_mapper (
         .sprite_red(sprite_r),
         .sprite_green(sprite_g),
         .sprite_blue(sprite_b),
-        .thrust_active(thrust_active)
+        .thrust_active(thrust_active),
+        .angle_shifted(angle_shifted)
     );
 
 // ============================================================

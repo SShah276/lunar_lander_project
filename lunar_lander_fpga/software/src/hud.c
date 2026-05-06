@@ -14,7 +14,7 @@ unsigned int hud_pack_with_thrust(int render_thrust) {
     unsigned int vx_scaled = ((unsigned int)abs_vx * 255) / MAX_VEL_X;
     if (vx_scaled > 255) vx_scaled = 255;
 
-    // angle_deg is -15, 0, or +15 — shift by 45 gives 30, 45, or 60 (fits in 7 bits)
+    // angle_deg is -45..+45; shifting by 45 gives 0..90 for hardware rendering.
     unsigned int angle_shifted = (unsigned int)(angle_deg + 45);
 
     return ((game_state    & 0x3)  << 30) |
