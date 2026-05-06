@@ -24,9 +24,13 @@ extern XGpio Gpio_lander;
 //   [31:30] = game_state
 //   [29]    = thrust_on
 //   [28:22] = angle (shifted +45, 0..90)
-//   [21:14] = fuel 0-255
-//   [13:6]  = vert velocity 0-255
-//   [5:0]   = horiz velocity 0-63
+//   [21:8]  = score 0-9999
+//   [7:0]   = fuel 0-255
+//
+// Gpio_keycode Channel 2 (HUD extra):
+//   [31:24] = elapsed seconds
+//   [23:16] = vertical speed 0-99
+//   [15:8]  = horizontal speed 0-99
 // ============================================================
 
 // Initialize all GPIOs

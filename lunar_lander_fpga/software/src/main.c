@@ -86,6 +86,7 @@ int main(void) {
     // Change detection — only write GPIO when values change
     static u32 last_pos_word    = 0xFFFFFFFF;
     static u32 last_status_word = 0xFFFFFFFF;
+    static u32 last_extra_word  = 0xFFFFFFFF;
 
     // Zero out keybuf so first frame has clean input
     int i;
@@ -150,11 +151,17 @@ int main(void) {
                 u32 new_pos = (((unsigned int)(pos_y >> FIXED_SHIFT) & 0x3FF) << 10) |
                                ((unsigned int)(pos_x >> FIXED_SHIFT) & 0x3FF);
                 u32 new_status = (u32)hud_pack_with_thrust(render_thrust_flag);
+                u32 new_extra = (u32)hud_pack_extra_word();
 
                 if (new_pos != last_pos_word || new_status != last_status_word) {
                     send_lander_to_hw(render_thrust_flag);
                     last_pos_word    = new_pos;
                     last_status_word = new_status;
+                }
+
+                if (new_extra != last_extra_word) {
+                    XGpio_DiscreteWrite(&Gpio_keycode, 2, new_extra);
+                    last_extra_word = new_extra;
                 }
 
                 // Hex display — existing behavior

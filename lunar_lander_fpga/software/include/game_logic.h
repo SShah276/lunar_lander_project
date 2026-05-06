@@ -37,6 +37,7 @@
 extern int game_state;
 extern int fuel;
 extern int score;
+extern int elapsed_frames;
 extern int landed_on_pad;        // which pad index we landed on (-1 = none)
 
 // ============================================================

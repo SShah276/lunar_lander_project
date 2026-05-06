@@ -11,12 +11,14 @@
 int game_state    = STATE_PLAYING;
 int fuel          = MAX_FUEL;
 int score         = 0;
+int elapsed_frames = 0;
 int landed_on_pad = -1;
 
 void game_logic_init(void) {
     game_state    = STATE_PLAYING;
     fuel          = MAX_FUEL;
     score         = 0;
+    elapsed_frames = 0;
     landed_on_pad = -1;
 }
 
@@ -36,6 +38,8 @@ void game_logic_update(void) {
     // FUEL — burn when thrusting or rotating
     // --------------------------------------------------------
     if (game_state == STATE_PLAYING) {
+        elapsed_frames++;
+
         if (input_thrust && fuel > 0) {
             fuel -= FUEL_BURN_THRUST;
             if (fuel < 0) fuel = 0;

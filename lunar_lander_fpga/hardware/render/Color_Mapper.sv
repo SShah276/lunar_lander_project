@@ -2,6 +2,7 @@ module color_mapper (
     input  logic [9:0]  BallX, BallY,
     input  logic [9:0]  DrawX, DrawY,
     input  logic [9:0]  Ball_size,          // unused by this module, kept for port compat
+    input  logic [31:0] hud_extra_word,
     input  logic [31:0] status_word,
     output logic [3:0]  Red, Green, Blue
 );
@@ -12,6 +13,8 @@ module color_mapper (
     logic [1:0] game_state;
     logic       thrust_active;
     logic [6:0] angle_shifted;
+    logic [13:0] score_value;
+    logic [7:0] elapsed_seconds;
     logic [7:0] fuel_scaled;
     logic [7:0] vel_y_scaled;
     logic [7:0] vel_x_scaled;
@@ -19,9 +22,11 @@ module color_mapper (
     assign game_state    = status_word[31:30];
     assign thrust_active = status_word[29];
     assign angle_shifted = status_word[28:22];
-    assign fuel_scaled   = status_word[21:14];
-    assign vel_y_scaled  = status_word[13:6];
-    assign vel_x_scaled  = {2'b00, status_word[5:0]};
+    assign score_value   = status_word[21:8];
+    assign fuel_scaled   = status_word[7:0];
+    assign elapsed_seconds = hud_extra_word[31:24];
+    assign vel_y_scaled  = hud_extra_word[23:16];
+    assign vel_x_scaled  = hud_extra_word[15:8];
 
     // ============================================================
     // TERRAIN SUBMODULE
@@ -51,7 +56,7 @@ module color_mapper (
     // Convert fuel_scaled (0-255) → display value (0-1000)
     // ============================================================
     logic [9:0] fuel_display;
-    assign fuel_display = ({2'b00, fuel_scaled} * 10'd1000) >> 8;
+    assign fuel_display = ({2'b00, fuel_scaled} * 10'd1000) / 10'd255;
 
     logic hud_on;
     logic pad_text_on;
@@ -59,6 +64,8 @@ module color_mapper (
     hud hud_inst (
         .DrawX          (DrawX),
         .DrawY          (DrawY),
+        .score_value    (score_value),
+        .elapsed_seconds(elapsed_seconds),
         .fuel_value     (fuel_display),
         .altitude_value (altitude_value),
         .vel_x_scaled   (vel_x_scaled),

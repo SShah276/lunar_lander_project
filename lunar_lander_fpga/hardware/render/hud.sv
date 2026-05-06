@@ -42,12 +42,12 @@ module hud (
     input  logic [9:0]  DrawX, DrawY,
 
     // Game values (caller scales/converts these)
+    input  logic [13:0] score_value,     // 0-9999 display value
+    input  logic [7:0]  elapsed_seconds, // 0-255 seconds
     input  logic [9:0]  fuel_value,      // 0-1000 display value
     input  logic [9:0]  altitude_value,  // pixels above ground
-    input  logic [7:0]  vel_x_scaled,    // 0-255
-    input  logic [7:0]  vel_y_scaled,    // 0-255
-    // TODO: score / time inputs (wire from MicroBlaze registers)
-    // For now these are hardcoded to 0 / 0:00 until score logic exists
+    input  logic [7:0]  vel_x_scaled,    // 0-99
+    input  logic [7:0]  vel_y_scaled,    // 0-99
 
     output logic        hud_on,
     output logic        pad_text_on
@@ -182,7 +182,8 @@ module hud (
     // `digits` = total digit columns to render.
     // ============================================================
     function automatic logic number_on(
-        input logic [9:0] x, y, ox, oy, value,
+        input logic [9:0] x, y, ox, oy,
+        input logic [13:0] value,
         input logic [2:0] digits
     );
         logic [9:0] dx, dy;
@@ -193,10 +194,10 @@ module hud (
             dy  = y - oy;
             idx = dx / CHAR_W;
             case (digits - idx)
-                3'd4: d = (value / 10'd1000) % 10'd10;
-                3'd3: d = (value / 10'd100)  % 10'd10;
-                3'd2: d = (value / 10'd10)   % 10'd10;
-                default: d = value % 10'd10;
+                3'd4: d = (value / 14'd1000) % 14'd10;
+                3'd3: d = (value / 14'd100)  % 14'd10;
+                3'd2: d = (value / 14'd10)   % 14'd10;
+                default: d = value % 14'd10;
             endcase
             number_on = (x >= ox) && (y >= oy) &&
                         (idx < digits) && (dy < FONT_H * FONT_SCALE) &&
@@ -240,20 +241,22 @@ module hud (
     //    "2X" at (368, 456) — hard bottom-right pad
     //    "4X" at (585, 330) — hard mid pad
     //
-    // NOTE: Score and Time are wired to 0 / 0:00 until you add
-    //       those registers from MicroBlaze.  Just swap in real
-    //       values when ready — the renderer is already correct.
     // ============================================================
+    logic [7:0] time_minutes;
+    logic [7:0] time_seconds_part;
+
+    assign time_minutes = elapsed_seconds / 8'd60;
+    assign time_seconds_part = elapsed_seconds % 8'd60;
+
     always_comb begin
         hud_on =
             // ---- TOP-LEFT ----
             label_on (DrawX, DrawY, 10'd20,  10'd38, 3'd0, 5'd5)   ||   // SCORE
-            number_on(DrawX, DrawY, 10'd118, 10'd38, 10'd0, 3'd4)  ||   // score value (0000)
+            number_on(DrawX, DrawY, 10'd118, 10'd38, score_value, 3'd4) ||
             label_on (DrawX, DrawY, 10'd20,  10'd58, 3'd1, 5'd4)   ||   // TIME
-            // TIME digits: "0:XX" — static "0" + ":" + 2-digit seconds
-            glyph_pixel("0",  DrawX - 10'd118, DrawY - 10'd58)     ||
+            number_on(DrawX, DrawY, 10'd118, 10'd58, {6'b0, time_minutes}, 3'd1) ||
             glyph_pixel(":",  DrawX - 10'd132, DrawY - 10'd58)     ||
-            number_on(DrawX, DrawY, 10'd146, 10'd58, 10'd3, 3'd2)  ||   // seconds (03)
+            number_on(DrawX, DrawY, 10'd146, 10'd58, {6'b0, time_seconds_part}, 3'd2) ||
             label_on (DrawX, DrawY, 10'd20,  10'd78, 3'd2, 5'd4)   ||   // FUEL
             number_on(DrawX, DrawY, 10'd118, 10'd78, fuel_value, 3'd4)  ||   // fuel 0-1000
 

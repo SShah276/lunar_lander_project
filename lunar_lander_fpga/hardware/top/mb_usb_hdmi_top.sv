@@ -127,6 +127,7 @@ module mb_usb_hdmi_top(
         .DrawX(drawX),
         .DrawY(drawY),
         .Ball_size(landerSize),
+        .hud_extra_word(keycode1_gpio),
         .status_word(game_data_gpio),
         .Red(red),
         .Green(green),
