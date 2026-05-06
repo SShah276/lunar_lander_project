@@ -2,35 +2,22 @@
 
 // ============================================================
 // TERRAIN DATA
-// Hand-crafted terrain for a consistent, playable layout.
-// Y values: higher = lower on screen.
-// Landing pads are flat segments between the rough terrain.
-//
-// Layout overview (segment 0-19, left to right):
-//  0-2:   high cliff on left
-//  3-4:   slope down
-//  5-6:   PAD 1 (easy, wide, low altitude = segment Y ~350)
-//  7-9:   rough mid terrain
-//  10-11: peak
-//  12-13: PAD 2 (hard, narrow, higher altitude = segment Y ~280)
-//  14-16: slope down
-//  17-19: low right terrain
+// Monochrome vector-style terrain. Keep these points in sync with
+// hardware/render/Color_Mapper.sv.
 // ============================================================
 
 int terrain_y[TERRAIN_SEGS] = {
-    370, 360, 340,   // 0-2:  left cliff
-    320, 300,        // 3-4:  slope down to pad 1
-    350, 350,        // 5-6:  PAD 1 (easy, flat)
-    330, 310, 320,   // 7-9:  rough middle
-    290, 280,        // 10-11: peak
-    280, 280,        // 12-13: PAD 2 (hard, flat, higher up)
-    300, 330, 350,   // 14-16: slope bac1k down
-    360, 370, 370    // 17-19: right terrain
+    448, 448, 368, 338, 398,
+    350, 350, 424, 406, 332,
+    238, 252, 336, 426, 448,
+    448, 366, 304, 340, 340
 };
 
 LandingPad pads[NUM_PADS] = {
-    { 5,  6,  350, 1 },   // Pad 0: easy,  wide,   low altitude
-    { 12, 13, 280, 2 }    // Pad 1: hard,  narrow, high altitude
+    { 1,  1,  448, 2 },   // far-left low pad
+    { 5,  6,  350, 4 },   // mid-left pad
+    { 14, 15, 448, 2 },   // valley pad
+    { 18, 19, 340, 4 }    // right pad
 };
 
 void terrain_init(void) {
@@ -44,11 +31,15 @@ int terrain_get_y(int pixel_x) {
     if (pixel_x >= SCREEN_W)   pixel_x = SCREEN_W - 1;
 
     int seg = pixel_x / TERRAIN_SEG_W;
+    int frac = pixel_x % TERRAIN_SEG_W;
 
     if (seg < 0)               seg = 0;
     if (seg >= TERRAIN_SEGS)   seg = TERRAIN_SEGS - 1;
 
-    return terrain_y[seg];
+    if (seg == TERRAIN_SEGS - 1) return terrain_y[seg];
+
+    return terrain_y[seg] +
+           ((terrain_y[seg + 1] - terrain_y[seg]) * frac) / TERRAIN_SEG_W;
 }
 
 int terrain_get_pad(int pixel_x) {
