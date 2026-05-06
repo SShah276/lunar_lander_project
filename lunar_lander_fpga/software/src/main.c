@@ -17,7 +17,6 @@
 #include "input.h"
 #include "game_logic.h"
 #include "interface.h"
-#include "terrain.h"
 
 extern HID_DEVICE hid_device;
 
@@ -48,7 +47,6 @@ BYTE GetDriverandReport() {
 
 int main() {
     interface_init();
-    terrain_set_difficulty(TERRAIN_MEDIUM);
     physics_init();
     game_logic_init();
     send_lander_to_hw();

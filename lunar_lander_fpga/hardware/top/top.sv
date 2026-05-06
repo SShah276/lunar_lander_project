@@ -43,11 +43,6 @@ module top (
     logic [9:0] drawY;
     logic [9:0] lander_x;
     logic [9:0] lander_y;
-    logic [1:0] angle_idx;
-    logic thrust_active;
-    logic [7:0] fuel_scaled;
-    logic [7:0] vel_y_scaled;
-    logic [7:0] vel_x_scaled;
 
     logic hsync;
     logic vsync;
@@ -88,11 +83,6 @@ module top (
     // Replace these with real wrapper outputs later.
     assign lander_x = 10'd320;
     assign lander_y = 10'd240;
-    assign angle_idx = 2'd1;
-    assign thrust_active = 1'b0;
-    assign fuel_scaled = 8'hFF;
-    assign vel_y_scaled = 8'h00;
-    assign vel_x_scaled = 8'h00;
 
     clk_wiz_0 clk_wiz (
         .clk_out1(clk_25MHz),
@@ -115,11 +105,6 @@ module top (
     color_mapper color_instance (
         .lander_x(lander_x),
         .lander_y(lander_y),
-        .angle_idx(angle_idx),
-        .thrust_active(thrust_active),
-        .fuel_scaled(fuel_scaled),
-        .vel_y_scaled(vel_y_scaled),
-        .vel_x_scaled(vel_x_scaled),
         .DrawX(drawX),
         .DrawY(drawY),
         .Red(red),

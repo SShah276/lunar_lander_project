@@ -1,7 +1,6 @@
 #include "game_logic.h"
 #include "physics.h"
 #include "input.h"
-#include "terrain.h"
 
 #include <stdio.h>
 
@@ -29,18 +28,15 @@ void game_logic_update(void) {
 
     if (game_state != STATE_PLAYING) return;
 
-    int pixel_x = pos_x >> FIXED_SHIFT;
     int pixel_y = pos_y >> FIXED_SHIFT;
-    int ground_y = terrain_y_at_x(pixel_x);
 
-    if (pixel_y + LANDER_SIZE >= ground_y) {
-        pos_y = (ground_y - LANDER_SIZE) << FIXED_SHIFT;
+    if (pixel_y + LANDER_SIZE >= GROUND_Y) {
+        pos_y = (GROUND_Y - LANDER_SIZE) << FIXED_SHIFT;
 
         int abs_vel_y = vel_y < 0 ? -vel_y : vel_y;
         int abs_vel_x = vel_x < 0 ? -vel_x : vel_x;
-        const LandingPad *pad = terrain_pad_at_x(pixel_x);
 
-        if (pad && abs_vel_y <= SAFE_VEL_Y && abs_vel_x <= SAFE_VEL_X) {
+        if (abs_vel_y <= SAFE_VEL_Y && abs_vel_x <= SAFE_VEL_X) {
             game_state = STATE_LANDED;
             xil_printf("*** SAFE LANDING ***\n");
         } else {
