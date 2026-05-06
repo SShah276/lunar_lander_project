@@ -19,7 +19,8 @@
 
 #define GRAVITY           2          // lighter gravity, more forgiving
 #define THRUST_POWER      6          // slightly less explosive thrust
-#define H_THRUST_POWER    2          // low — prevents slingshot effect
+#define ROTATION_STEP     3          // degrees changed per update while rotating
+#define MAX_TILT_DEG      45         // lookup table supports -45..+45 degrees
 #define H_DRAG            1          // drag — stops horizontal drift
 #define MAX_VEL_Y         400        // terminal velocity
 #define MIN_VEL_Y         (-400)
@@ -61,7 +62,7 @@ extern int pos_x;          // fixed-point position
 extern int pos_y;
 extern int vel_x;          // fixed-point velocity
 extern int vel_y;
-extern int angle_deg;      // degrees: -15=left tilt, 0=upright, +15=right tilt
+extern int angle_deg;      // degrees: -45=left tilt, 0=upright, +45=right tilt
 extern int angle_idx;      // sprite index: 0=left, 1=upright, 2=right
 extern int thrust_on;      // 1 if thrusting this frame, 0 otherwise
 extern int fuel;           // current fuel level, read by physics for thrust gating
