@@ -52,3 +52,74 @@ int terrain_get_pad(int pixel_x) {
     }
     return -1;   // not over any pad
 }
+
+/* #include "terrain.h"
+
+// ============================================================
+// TERRAIN DATA
+// Hand-crafted terrain for consistent gameplay
+// ============================================================
+
+int terrain_y[TERRAIN_SEGS] = {
+    370, 360, 340,   // 0-2: left cliff
+    320, 300,        // 3-4: slope down
+    350, 350,        // 5-6: PAD 1
+    330, 310, 320,   // 7-9: rough middle
+    290, 280,        // 10-11: peak
+    280, 280,        // 12-13: PAD 2
+    300, 330, 350,   // 14-16: slope down
+    360, 370, 370    // 17-19: right terrain
+};
+
+// ============================================================
+// LANDING PADS
+// ============================================================
+
+LandingPad pads[NUM_PADS] = {
+    { 5,  6,  350, 1 },   // easy pad
+    { 12, 13, 280, 2 }    // hard pad
+};
+
+// ============================================================
+// INIT
+// ============================================================
+
+void terrain_init(void) {
+    // Static terrain — nothing needed
+}
+
+// ============================================================
+// GET TERRAIN HEIGHT (block-style, no interpolation)
+// ============================================================
+
+int terrain_get_y(int pixel_x) {
+    if (pixel_x < 0) pixel_x = 0;
+    if (pixel_x >= TERRAIN_SEGS * TERRAIN_SEG_W)
+        pixel_x = TERRAIN_SEGS * TERRAIN_SEG_W - 1;
+
+    int seg = pixel_x / TERRAIN_SEG_W;
+
+    if (seg < 0) seg = 0;
+    if (seg >= TERRAIN_SEGS) seg = TERRAIN_SEGS - 1;
+
+    return terrain_y[seg];
+}
+
+// ============================================================
+// GET PAD INDEX
+// Returns: pad index OR -1 if not on pad
+// ============================================================
+
+int terrain_get_pad(int pixel_x) {
+    int seg = pixel_x / TERRAIN_SEG_W;
+
+    for (int i = 0; i < NUM_PADS; i++) {
+        if (seg >= pads[i].seg_start &&
+            seg <= pads[i].seg_end) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+*/

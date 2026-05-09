@@ -19,7 +19,7 @@
 
 #define GRAVITY           2          // lighter gravity, more forgiving
 #define THRUST_POWER      6          // slightly less explosive thrust
-#define ROTATION_STEP_FP  (FIXED_ONE / 2)  // 0.5 degrees/update, fixed-point
+#define ROTATION_STEP_FP     ((FIXED_ONE * 3) / 4)       // degrees changed per update while rotating
 #define MAX_TILT_DEG      45         // lookup table supports -45..+45 degrees
 #define H_DRAG            1          // drag — stops horizontal drift
 #define MAX_VEL_Y         400        // terminal velocity

@@ -55,7 +55,7 @@ module hud (
 
     // ============================================================
     // FONT PARAMETERS
-    // 5×7 bitmap, rendered 2× scaled → each char is 10×14px
+    // 5×7 bitmap, rendered 2× scaled ? each char is 10×14px
     // CHAR_W = 6 cols × 2 = 12px  (1px gap between chars)
     // ============================================================
     localparam int FONT_SCALE = 2;

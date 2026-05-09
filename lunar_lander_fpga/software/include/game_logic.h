@@ -11,7 +11,7 @@
 // ============================================================
 // FUEL
 // ============================================================
-#define MAX_FUEL              2000
+#define MAX_FUEL              1000
 #define FUEL_BURN_THRUST      2      // fuel per frame while thrusting
 #define FUEL_BURN_ROTATE      1      // fuel per frame while rotating
 
@@ -37,8 +37,8 @@
 extern int game_state;
 extern int fuel;
 extern int score;
-extern int elapsed_frames;
 extern int landed_on_pad;        // which pad index we landed on (-1 = none)
+extern int elapsed_frames;
 
 // ============================================================
 // FUNCTIONS

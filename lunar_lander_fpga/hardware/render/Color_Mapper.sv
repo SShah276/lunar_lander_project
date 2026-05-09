@@ -18,6 +18,7 @@ module color_mapper (
     logic [7:0] fuel_scaled;
     logic [7:0] vel_y_scaled;
     logic [7:0] vel_x_scaled;
+    logic [9:0] fuel_display; // FIX FOR FUEL HUD
 
     assign game_state    = status_word[31:30];
     assign thrust_active = status_word[29];
@@ -25,8 +26,10 @@ module color_mapper (
     assign score_value   = status_word[21:8];
     assign fuel_scaled   = status_word[7:0];
     assign elapsed_seconds = hud_extra_word[31:24];
-    assign vel_y_scaled  = hud_extra_word[23:16];
-    assign vel_x_scaled  = hud_extra_word[15:8];
+    assign vel_y_scaled  = {1'b0, hud_extra_word[23:17]};
+    assign vel_x_scaled  = {1'b0, hud_extra_word[16:10]};
+    assign fuel_display = ((18'(fuel_scaled) * 18'd1000) / 18'd255);
+    
 
     // ============================================================
     // TERRAIN SUBMODULE
@@ -53,10 +56,8 @@ module color_mapper (
 
     // ============================================================
     // HUD SUBMODULE
-    // Convert fuel_scaled (0-255) → display value (0-1000)
+    // Convert fuel_scaled (0-255) ? display value (0-1000)
     // ============================================================
-    logic [9:0] fuel_display;
-    assign fuel_display = ({2'b00, fuel_scaled} * 10'd1000) / 10'd255;
 
     logic hud_on;
     logic pad_text_on;
@@ -168,10 +169,10 @@ module color_mapper (
 
         // --- 1. Game-state strip (top 4 rows) ---
         if (game_state == 2'b10 && DrawY < 10'd4) begin
-            Red = 4'hF; Green = 4'h0; Blue = 4'h0;   // crashed → red
+            Red = 4'hF; Green = 4'h0; Blue = 4'h0;   // crashed ? red
         end
         if (game_state == 2'b01 && DrawY < 10'd4) begin
-            Red = 4'h0; Green = 4'hF; Blue = 4'h0;   // landed  → green
+            Red = 4'h0; Green = 4'hF; Blue = 4'h0;   // landed  ? green
         end
     end
 

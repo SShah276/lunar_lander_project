@@ -54,10 +54,10 @@ module terrain (
     // Must stay in sync with software/src/terrain.c
     //
     // Pad segments (flat regions):
-    //   seg 1        → easy pad   (Y=448, bottom left)
-    //   segs 5–6     → easy pad   (Y=350, mid-left)
-    //   segs 14–15   → hard pad   (Y=448, bottom right)
-    //   segs 18–19   → hard pad   (Y=340, mid-right)
+    //   seg 1        ? easy pad   (Y=448, bottom left)
+    //   segs 5–6     ? easy pad   (Y=350, mid-left)
+    //   segs 14–15   ? hard pad   (Y=448, bottom right)
+    //   segs 18–19   ? hard pad   (Y=340, mid-right)
     // ============================================================
     function automatic signed [10:0] terrain_point_y(input logic [4:0] seg);
         case (seg)

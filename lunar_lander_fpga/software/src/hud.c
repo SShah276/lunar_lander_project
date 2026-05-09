@@ -10,7 +10,7 @@ unsigned int hud_pack_with_thrust(int render_thrust) {
     if (score_display > 9999u) score_display = 9999u;
 
     // angle_deg is -45..+45; shifting by 45 gives 0..90 for hardware rendering.
-    unsigned int angle_shifted = (unsigned int)(angle_deg + 45);
+    unsigned int angle_shifted = (unsigned int)(angle_deg);
 
     return ((game_state    & 0x3)  << 30) |
            ((render_thrust & 0x1)  << 29) |
@@ -32,6 +32,6 @@ unsigned int hud_pack_extra_word(void) {
     if (vx_scaled > 99u) vx_scaled = 99u;
 
     return ((elapsed_seconds & 0xFFu) << 24) |
-           ((vy_scaled       & 0xFFu) << 16) |
-           ((vx_scaled       & 0xFFu) <<  8);
+           ((vy_scaled       & 0xFFu) << 17) |
+           ((vx_scaled       & 0xFFu) <<  10);
 }
