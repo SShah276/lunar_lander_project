@@ -63,10 +63,10 @@ void game_logic_update(void) {
     int ground_y = terrain_get_y(pixel_x);
 
     // Check collision with ground
-    if (pixel_y + LANDER_SIZE >= ground_y) {
+    if (pixel_y + LANDER_BODY_BOTTOM_OFFSET >= ground_y) {
 
         // Snap lander to ground
-        pos_y = (ground_y - LANDER_SIZE) << FIXED_SHIFT;
+        pos_y = (ground_y - LANDER_BODY_BOTTOM_OFFSET) << FIXED_SHIFT;
 
         // OLD SYSTEM: get pad index
         int pad_idx = terrain_get_pad(pixel_x);
