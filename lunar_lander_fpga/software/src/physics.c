@@ -1,10 +1,7 @@
 #include "physics.h"
-#include "input.h"       // needs input_thrust, input_left, input_right
-#include "game_logic.h"  // needs game_state, fuel
+#include "input.h"       
+#include "game_logic.h"  
 
-// ============================================================
-// STATE — owned by this file
-// ============================================================
 int pos_x     = 0;
 int pos_y     = 0;
 int vel_x     = 0;
@@ -15,12 +12,7 @@ int thrust_on = 0;
 
 static int angle_fp = 0;
 
-// ============================================================
-// SIN/COS LOOKUP TABLE
 // Precomputed: sin(degrees) * 256, for -45 to +45 degrees
-// Index = degrees + 45, so index 0 = -45deg, index 45 = 0deg, index 90 = +45deg
-// Generated with: round(sin(d * pi/180) * 256)
-// ============================================================
 const int sin_table[91] = {
     -181, -178, -175, -171, -168, -165, -161, -158, -154, -150, -147, -143, -139,
     -136, -132, -128, -124, -120, -116, -112, -108, -104, -100,  -96,  -92,  -88,
@@ -53,15 +45,12 @@ void physics_init(void) {
 }
 
 void physics_update(void) {
-    // Freeze if game is over
     if (game_state != STATE_PLAYING) return;
 
-    // Read current input state (set by input.c each frame)
     int thrusting      = input_thrust && (fuel > 0);
     int rotating_left  = input_left   && (fuel > 0);
     int rotating_right = input_right  && (fuel > 0);
 
-    // --- Rotation ---
     if (rotating_left && !rotating_right) {
         angle_fp -= ROTATION_STEP_FP;
     } else if (rotating_right && !rotating_left) {
@@ -85,7 +74,6 @@ void physics_update(void) {
         angle_idx = 1;
     }
 
-    // --- Acceleration ---
     vel_y += GRAVITY;
 
     if (thrusting) {
@@ -106,11 +94,9 @@ void physics_update(void) {
     if (vel_y > MAX_VEL_Y)  vel_y = MAX_VEL_Y;
     if (vel_y < MIN_VEL_Y)  vel_y = MIN_VEL_Y;
 
-    // --- Position ---
     pos_x += vel_x;
     pos_y += vel_y;
 
-    // --- Boundaries ---
     if (pos_y < Y_MIN_FP) { pos_y = Y_MIN_FP; vel_y = 0; }
     if (pos_y > Y_MAX_FP) { pos_y = Y_MAX_FP; vel_y = 0; vel_x = 0; }
     if (pos_x < X_MIN_FP) { pos_x = X_MIN_FP; vel_x = 0; }

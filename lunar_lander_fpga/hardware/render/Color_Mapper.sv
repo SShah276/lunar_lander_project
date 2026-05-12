@@ -1,15 +1,12 @@
 module color_mapper (
     input  logic [9:0]  BallX, BallY,
     input  logic [9:0]  DrawX, DrawY,
-    input  logic [9:0]  Ball_size,          // unused by this module, kept for port compat
+    input  logic [9:0]  Ball_size,          
     input  logic [31:0] hud_extra_word,
     input  logic [31:0] status_word,
     output logic [3:0]  Red, Green, Blue
 );
 
-    // ============================================================
-    // UNPACK STATUS WORD
-    // ============================================================
     logic [1:0] game_state;
     logic       thrust_active;
     logic [6:0] angle_shifted;
@@ -18,7 +15,7 @@ module color_mapper (
     logic [7:0] fuel_scaled;
     logic [7:0] vel_y_scaled;
     logic [7:0] vel_x_scaled;
-    logic [9:0] fuel_display; // FIX FOR FUEL HUD
+    logic [9:0] fuel_display;
 
     assign game_state    = status_word[31:30];
     assign thrust_active = status_word[29];
@@ -31,9 +28,6 @@ module color_mapper (
     assign fuel_display = ((18'(fuel_scaled) * 18'd1000) / 18'd255);
     
 
-    // ============================================================
-    // TERRAIN SUBMODULE
-    // ============================================================
     logic [9:0] terrain_y_at_x;
     logic [9:0] lander_ground_y;
     logic [9:0] altitude_value;
@@ -54,11 +48,6 @@ module color_mapper (
         .terrain_glow_on (terrain_glow_on)
     );
 
-    // ============================================================
-    // HUD SUBMODULE
-    // Convert fuel_scaled (0-255) ? display value (0-1000)
-    // ============================================================
-
     logic hud_on;
     logic pad_text_on;
 
@@ -75,9 +64,6 @@ module color_mapper (
         .pad_text_on    (pad_text_on)
     );
 
-    // ============================================================
-    // SPRITE SUBMODULE  (your existing lander_sprite)
-    // ============================================================
     logic       sprite_on;
     logic [3:0] sprite_r, sprite_g, sprite_b;
 
@@ -94,9 +80,6 @@ module color_mapper (
         .angle_shifted(angle_shifted)
     );
 
-    // ============================================================
-    // SPARSE STAR FIELD  (fixed positions — cheap and effective)
-    // ============================================================
     logic star_on;
     always_comb begin
         star_on = 1'b0;
@@ -116,63 +99,52 @@ module color_mapper (
         end
     end
 
-    // ============================================================
-    // PIXEL COMPOSITOR  (priority: last write wins)
-    // ============================================================
     always_comb begin
-        // --- 8. Black background ---
         Red   = 4'h0;
         Green = 4'h0;
         Blue  = 4'h0;
 
-        // --- 7. Stars ---
         if (star_on) begin
             Red   = 4'hC;
             Green = 4'hC;
             Blue  = 4'hC;
         end
 
-        // --- 6. Terrain glow ---
         if (terrain_glow_on) begin
             Red   = 4'h3;
             Green = 4'h3;
             Blue  = 4'h3;
         end
 
-        // --- 5. Terrain surface line ---
         if (terrain_line_on) begin
             Red   = on_pad ? 4'hF : 4'h9;
             Green = on_pad ? 4'hF : 4'h9;
             Blue  = on_pad ? 4'hF : 4'h9;
         end
 
-        // --- 4. Lander sprite ---
         if (sprite_on) begin
             Red   = sprite_r;
             Green = sprite_g;
             Blue  = sprite_b;
         end
 
-        // --- 3. Pad multiplier text ---
         if (pad_text_on) begin
             Red   = 4'hD;
             Green = 4'hD;
             Blue  = 4'hD;
         end
 
-        // --- 2. HUD text ---
         if (hud_on) begin
             Red   = 4'hD;
             Green = 4'hD;
             Blue  = 4'hD;
         end
 
-        // --- 1. Game-state strip (top 4 rows) ---
         if (game_state == 2'b10 && DrawY < 10'd4) begin
-            Red = 4'hF; Green = 4'h0; Blue = 4'h0;   // crashed ? red
+            Red = 4'hF; Green = 4'h0; Blue = 4'h0;
         end
         if (game_state == 2'b01 && DrawY < 10'd4) begin
-            Red = 4'h0; Green = 4'hF; Blue = 4'h0;   // landed  ? green
+            Red = 4'h0; Green = 4'hF; Blue = 4'h0;
         end
     end
 

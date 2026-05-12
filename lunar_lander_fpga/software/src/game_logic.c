@@ -3,11 +3,8 @@
 #include "input.h"
 #include "terrain.h"
 
-#include <stdio.h>    // for xil_printf
+#include <stdio.h>    
 
-// ============================================================
-// STATE — owned by this file
-// ============================================================
 int game_state    = STATE_PLAYING;
 int fuel          = MAX_FUEL;
 int score         = 0;
@@ -24,9 +21,6 @@ void game_logic_init(void) {
 
 void game_logic_update(void) {
 
-    // --------------------------------------------------------
-    // RESET — always check regardless of game state
-    // --------------------------------------------------------
     if (input_reset) {
         game_logic_init();
         physics_init();
@@ -34,9 +28,6 @@ void game_logic_update(void) {
         return;
     }
 
-    // --------------------------------------------------------
-    // FUEL — burn when thrusting or rotating
-    // --------------------------------------------------------
     if (game_state == STATE_PLAYING) {
         elapsed_frames++;
 
@@ -50,39 +41,28 @@ void game_logic_update(void) {
         }
     }
 
-    // --------------------------------------------------------
-    // COLLISION DETECTION
-    // --------------------------------------------------------
     if (game_state != STATE_PLAYING) return;
 
-    // Get current pixel position
     int pixel_x = pos_x >> FIXED_SHIFT;
     int pixel_y = pos_y >> FIXED_SHIFT;
 
-    // Get terrain height
     int ground_y = terrain_get_y(pixel_x);
 
-    // Check collision with ground
     if (pixel_y + LANDER_SIZE >= ground_y) {
 
-        // Snap lander to ground
         pos_y = (ground_y - LANDER_SIZE) << FIXED_SHIFT;
 
-        // OLD SYSTEM: get pad index
         int pad_idx = terrain_get_pad(pixel_x);
 
-        // Absolute values for checks
         int abs_vel_y = vel_y < 0 ? -vel_y : vel_y;
         int abs_vel_x = vel_x < 0 ? -vel_x : vel_x;
         int abs_angle = angle_deg < 0 ? -angle_deg : angle_deg;
 
         if (pad_idx >= 0) {
-            // Over a landing pad
             if (abs_vel_y <= SAFE_VEL_Y &&
                 abs_vel_x <= SAFE_VEL_X &&
                 abs_angle <= SAFE_ANGLE) {
 
-                // SAFE LANDING
                 game_state    = STATE_LANDED;
                 landed_on_pad = pad_idx;
 
@@ -97,7 +77,6 @@ void game_logic_update(void) {
                            vel_y, vel_x, angle_deg);
 
             } else {
-                // Failed landing on pad
                 game_state = STATE_CRASHED;
 
                 xil_printf("=== CRASHED ON PAD! ===\n");
@@ -108,7 +87,6 @@ void game_logic_update(void) {
             }
 
         } else {
-            // Hit terrain (not on pad)
             game_state = STATE_CRASHED;
 
             xil_printf("=== CRASHED ON TERRAIN! ===\n");
@@ -116,7 +94,6 @@ void game_logic_update(void) {
                        vel_y, vel_x, angle_deg);
         }
 
-        // Stop motion
         vel_x = 0;
         vel_y = 0;
     }

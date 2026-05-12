@@ -1,38 +1,4 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 05/06/2026 05:46:24 PM
-// Design Name: 
-// Module Name: terrain
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
-
-// ============================================================
-// terrain.sv
-// Terrain geometry: interpolated height + landing pad detection
-// Instantiate this in color_mapper.sv
-//
-// Outputs (combinational, per draw pixel):
-//   terrain_y_at_x   — interpolated terrain Y at DrawX
-//   lander_ground_y  — terrain Y directly below lander (BallX)
-//   altitude_value   — pixel distance lander is above ground
-//   on_pad           — DrawX is over a landing pad segment
-//   terrain_line_on  — DrawX/DrawY is on the surface line (±1px)
-//   terrain_glow_on  — DrawX/DrawY is in the glow halo (±3px, not line)
-// ============================================================
 
 module terrain (
     input  logic [9:0] DrawX,
@@ -48,17 +14,7 @@ module terrain (
     output logic       terrain_glow_on
 );
 
-    // ============================================================
-    // CONTROL POINTS
-    // 20 segments × 32px = 640px wide screen
-    // Must stay in sync with software/src/terrain.c
-    //
-    // Pad segments (flat regions):
-    //   seg 1        ? easy pad   (Y=448, bottom left)
-    //   segs 5–6     ? easy pad   (Y=350, mid-left)
-    //   segs 14–15   ? hard pad   (Y=448, bottom right)
-    //   segs 18–19   ? hard pad   (Y=340, mid-right)
-    // ============================================================
+    // Control points match software/src/terrain.c.
     function automatic signed [10:0] terrain_point_y(input logic [4:0] seg);
         case (seg)
             5'd0:  terrain_point_y = 11'sd448;
@@ -85,10 +41,6 @@ module terrain (
         endcase
     endfunction
 
-    // ============================================================
-    // LINEAR INTERPOLATION between adjacent control points
-    // frac = low 5 bits of x = position within the 32px segment
-    // ============================================================
     function automatic [9:0] get_terrain_y(input logic [9:0] x);
         logic [4:0]  seg, next_seg, frac;
         logic signed [10:0] y0, y1;
@@ -104,9 +56,6 @@ module terrain (
         end
     endfunction
 
-    // ============================================================
-    // PAD DETECTION — flat segments only
-    // ============================================================
     function automatic logic is_pad(input logic [9:0] x);
         logic [4:0] seg;
         begin
@@ -118,9 +67,6 @@ module terrain (
         end
     endfunction
 
-    // ============================================================
-    // COMBINATIONAL OUTPUTS
-    // ============================================================
     logic [9:0] ty;   // terrain Y at DrawX (internal)
 
     always_comb begin
@@ -130,10 +76,7 @@ module terrain (
         altitude_value  = (BallY < lander_ground_y) ? (lander_ground_y - BallY) : 10'd0;
         on_pad          = is_pad(DrawX);
 
-        // Surface line  = ±1 pixel around terrain height
         terrain_line_on = (DrawY >= ty - 10'd1) && (DrawY <= ty + 10'd1);
-
-        // Glow halo = ±3px, excluding the solid line
         terrain_glow_on = !terrain_line_on &&
                           (DrawY >= ty - 10'd3) && (DrawY <= ty + 10'd3);
     end

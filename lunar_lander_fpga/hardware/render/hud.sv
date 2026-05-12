@@ -1,71 +1,25 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 05/06/2026 05:47:23 PM
-// Design Name: 
-// Module Name: hud
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
-
-// ============================================================
-// hud.sv
-// Bitmap font HUD renderer — matches Lunar Lander arcade style
-//
-// Inputs: all game values (pre-scaled by color_mapper)
-// Output: hud_on  — 1 if this pixel is a HUD text pixel
-//
-// Layout (mirrors the reference screenshot):
-//
-//  TOP-LEFT                      TOP-RIGHT
-//  SCORE  XXXX                   ALTITUDE         XXX
-//  TIME   X:XX                   HORIZONTAL SPEED  XX
-//  FUEL   XXXX                   VERTICAL SPEED    XX
-//
-//  Pad labels drawn on the terrain ("2X", "4X") are
-//  handled separately via pad_text_on.
-// ============================================================
 
 module hud (
     input  logic [9:0]  DrawX, DrawY,
 
-    // Game values (caller scales/converts these)
-    input  logic [13:0] score_value,     // 0-9999 display value
-    input  logic [7:0]  elapsed_seconds, // 0-255 seconds
-    input  logic [9:0]  fuel_value,      // 0-1000 display value
-    input  logic [9:0]  altitude_value,  // pixels above ground
-    input  logic [7:0]  vel_x_scaled,    // 0-99
-    input  logic [7:0]  vel_y_scaled,    // 0-99
+    // Game values 
+    input  logic [13:0] score_value,     
+    input  logic [7:0]  elapsed_seconds, 
+    input  logic [9:0]  fuel_value,     
+    input  logic [9:0]  altitude_value,  
+    input  logic [7:0]  vel_x_scaled,    
+    input  logic [7:0]  vel_y_scaled,    
 
     output logic        hud_on,
     output logic        pad_text_on
 );
 
-    // ============================================================
-    // FONT PARAMETERS
-    // 5×7 bitmap, rendered 2× scaled ? each char is 10×14px
-    // CHAR_W = 6 cols × 2 = 12px  (1px gap between chars)
-    // ============================================================
     localparam int FONT_SCALE = 2;
     localparam int FONT_W     = 5;
     localparam int FONT_H     = 7;
     localparam int CHAR_W     = 6 * FONT_SCALE;   // 12px per character cell
 
-    // ============================================================
-    // GLYPH ROM  (5-bit rows, MSB = leftmost pixel)
-    // ============================================================
     function automatic [4:0] glyph_row(input logic [7:0] ch, input logic [2:0] row);
         begin
             glyph_row = 5'b00000;
@@ -107,10 +61,6 @@ module hud (
         end
     endfunction
 
-    // ============================================================
-    // PIXEL TEST — is (dx, dy) within the glyph for ch?
-    // dx/dy are pixel offsets from the character's top-left corner.
-    // ============================================================
     function automatic logic glyph_pixel(
         input logic [7:0] ch,
         input logic [9:0] dx, dy
@@ -120,7 +70,7 @@ module hud (
         begin
             glyph_pixel = 1'b0;
             if (dx < FONT_W * FONT_SCALE && dy < FONT_H * FONT_SCALE) begin
-                row  = dy[3:1];          // divide by 2 (scale factor)
+                row  = dy[3:1];         
                 col  = dx[3:1];
                 bits = glyph_row(ch, row);
                 glyph_pixel = bits[FONT_W - 1 - col];
@@ -128,19 +78,6 @@ module hud (
         end
     endfunction
 
-    // ============================================================
-    // LABEL RENDERER
-    // Draws a string at screen position (ox, oy).
-    // label selects which string; len = character count.
-    //
-    // label IDs:
-    //   0 = "SCORE"          (5 chars)
-    //   1 = "TIME"           (4 chars)
-    //   2 = "FUEL"           (4 chars)
-    //   3 = "ALTITUDE"       (8 chars)
-    //   4 = "HORIZONTAL SPEED" (16 chars)
-    //   5 = "VERTICAL SPEED"  (14 chars)
-    // ============================================================
     function automatic [7:0] label_char(
         input logic [2:0] label,
         input logic [4:0] idx
@@ -176,11 +113,6 @@ module hud (
         end
     endfunction
 
-    // ============================================================
-    // NUMBER RENDERER
-    // Draws a right-aligned decimal number at (ox, oy).
-    // `digits` = total digit columns to render.
-    // ============================================================
     function automatic logic number_on(
         input logic [9:0] x, y, ox, oy,
         input logic [13:0] value,
@@ -205,13 +137,9 @@ module hud (
         end
     endfunction
 
-    // ============================================================
-    // PAD MULTIPLIER TEXT  ("2X" or "4X")
-    // These labels float just above each landing pad
-    // ============================================================
     function automatic logic padtext_on(
         input logic [9:0] x, y, ox, oy,
-        input logic [7:0] ch0         // first char: "2" or "4"
+        input logic [7:0] ch0        
     );
         logic [9:0] dx, dy;
         logic [1:0] idx;
@@ -227,21 +155,6 @@ module hud (
         end
     endfunction
 
-    // ============================================================
-    // HUD PIXEL LOGIC
-    // All positions match the reference screenshot layout.
-    //
-    //  Top-left  column:  x=20   labels,  x=118/146/118 numbers
-    //  Top-right column:  x=410  labels,  x=590/606/606 numbers
-    //  Row Y offsets: 38 / 58 / 78  (3 rows, 20px spacing)
-    //
-    //  Pad labels:
-    //    "2X" at (  8, 456) — easy bottom-left pad
-    //    "4X" at (148, 330) — easy mid pad
-    //    "2X" at (368, 456) — hard bottom-right pad
-    //    "4X" at (585, 330) — hard mid pad
-    //
-    // ============================================================
     logic [7:0] time_minutes;
     logic [7:0] time_seconds_part;
 
@@ -250,29 +163,26 @@ module hud (
 
     always_comb begin
         hud_on =
-            // ---- TOP-LEFT ----
-            label_on (DrawX, DrawY, 10'd20,  10'd38, 3'd0, 5'd5)   ||   // SCORE
+            label_on (DrawX, DrawY, 10'd20,  10'd38, 3'd0, 5'd5)   ||   // score
             number_on(DrawX, DrawY, 10'd118, 10'd38, score_value, 3'd4) ||
-            label_on (DrawX, DrawY, 10'd20,  10'd58, 3'd1, 5'd4)   ||   // TIME
+            label_on (DrawX, DrawY, 10'd20,  10'd58, 3'd1, 5'd4)   ||   // time
             number_on(DrawX, DrawY, 10'd118, 10'd58, {6'b0, time_minutes}, 3'd1) ||
             glyph_pixel(":",  DrawX - 10'd132, DrawY - 10'd58)     ||
             number_on(DrawX, DrawY, 10'd146, 10'd58, {6'b0, time_seconds_part}, 3'd2) ||
-            label_on (DrawX, DrawY, 10'd20,  10'd78, 3'd2, 5'd4)   ||   // FUEL
+            label_on (DrawX, DrawY, 10'd20,  10'd78, 3'd2, 5'd4)   ||   // fuel
             number_on(DrawX, DrawY, 10'd118, 10'd78, fuel_value, 3'd4)  ||   // fuel 0-1000
 
-            // ---- TOP-RIGHT ----
-            label_on (DrawX, DrawY, 10'd410, 10'd38, 3'd3, 5'd8)   ||   // ALTITUDE
+            label_on (DrawX, DrawY, 10'd410, 10'd38, 3'd3, 5'd8)   ||   // altitude
             number_on(DrawX, DrawY, 10'd590, 10'd38, altitude_value, 3'd3) ||
-            label_on (DrawX, DrawY, 10'd410, 10'd58, 3'd4, 5'd16)  ||   // HORIZONTAL SPEED
+            label_on (DrawX, DrawY, 10'd410, 10'd58, 3'd4, 5'd16)  ||   // horzi speed
             number_on(DrawX, DrawY, 10'd606, 10'd58, {2'b00, vel_x_scaled}, 3'd2) ||
-            label_on (DrawX, DrawY, 10'd410, 10'd78, 3'd5, 5'd14)  ||   // VERTICAL SPEED
+            label_on (DrawX, DrawY, 10'd410, 10'd78, 3'd5, 5'd14)  ||   // vert speed
             number_on(DrawX, DrawY, 10'd606, 10'd78, {2'b00, vel_y_scaled}, 3'd2);
 
-        // Pad multiplier labels, drawn near each pad surface
         pad_text_on =
-            padtext_on(DrawX, DrawY, 10'd8,   10'd456, "2") ||   // easy bottom-left
+            padtext_on(DrawX, DrawY, 10'd8,   10'd456, "2") ||   // easy bottom left
             padtext_on(DrawX, DrawY, 10'd148, 10'd330, "4") ||   // easy mid
-            padtext_on(DrawX, DrawY, 10'd368, 10'd456, "2") ||   // hard bottom-right
+            padtext_on(DrawX, DrawY, 10'd368, 10'd456, "2") ||   // hard bottom right
             padtext_on(DrawX, DrawY, 10'd585, 10'd330, "4");     // hard mid
     end
 

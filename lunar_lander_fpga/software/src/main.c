@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-// USB driver — MUST come before Xilinx headers
+// USB driver includes need to stay before the Xilinx headers.
 #include "lw_usb/GenericTypeDefs.h"
 #include "lw_usb/GenericMacros.h"
 #include "lw_usb/MAX3421E.h"
@@ -9,11 +9,9 @@
 #include "lw_usb/transfer.h"
 #include "lw_usb/HID.h"
 
-// Xilinx headers after USB
 #include "xparameters.h"
 #include <xgpio.h>
 
-// Game modules
 #include "physics.h"
 #include "input.h"
 #include "game_logic.h"
@@ -46,49 +44,32 @@ BYTE GetDriverandReport(void) {
     return device;
 }
 
-// ============================================================
-// FRAME THROTTLE — tune this if physics feels too fast/slow
-// ============================================================
 #define FRAME_SKIP   1
 
 int main(void) {
 
-    // Initialize hardware GPIO bridge
     interface_init();
-
-    // Initialize terrain
     terrain_init();
 
-    // Initialize game
     physics_init();
     game_logic_init();
 
-    // Send initial position to hardware — 0 thrust at startup
     send_lander_to_hw(0);
     send_terrain_to_hw();
 
-    // ============================================================
-    // LOCAL VARIABLES
-    // Declared here so they survive across loop iterations
-    // ============================================================
     BYTE rcode;
     BOOT_KBD_REPORT kbdbuf;
     BYTE runningdebugflag = 0;
     BYTE errorflag        = 0;
     BYTE device           = 0;
 
-    // Frame throttle counter
     static int frame_counter = 0;
-
-    // Render thrust flag — updated every loop, not just physics frames
     static int render_thrust_flag = 0;
 
-    // Change detection — only write GPIO when values change
     static u32 last_pos_word    = 0xFFFFFFFF;
     static u32 last_status_word = 0xFFFFFFFF;
     static u32 last_extra_word  = 0xFFFFFFFF;
 
-    // Zero out keybuf so first frame has clean input
     int i;
     for (i = 0; i < 6; i++) kbdbuf.keycode[i] = 0;
 
@@ -100,9 +81,6 @@ int main(void) {
     xil_printf("Initializing USB...\n");
     USB_init();
 
-    // ============================================================
-    // MAIN GAME LOOP
-    // ============================================================
     while (1) {
         MAX3421E_Task();
         USB_Task();
@@ -117,26 +95,17 @@ int main(void) {
 
                 rcode = kbdPoll(&kbdbuf);
 
-                // hrNAK = no new data, not an error
-                // Just fall through and use last known kbdbuf state
+            
                 if (rcode != hrNAK && rcode != 0) {
-                    continue;   // real USB error, skip frame
+                    continue;   
                 }
 
-                // ------------------------------------------------
-                // INPUT — read every loop iteration (no throttle)
-                // Keeps render_thrust_flag always current
-                // ------------------------------------------------
                 input_update(kbdbuf.keycode);
 
-                // Thrust for rendering: live key state + has fuel + playing
                 render_thrust_flag = (input_thrust  &&
                                       fuel > 0       &&
                                       game_state == STATE_PLAYING) ? 1 : 0;
 
-                // ------------------------------------------------
-                // PHYSICS — throttled to ~60Hz
-                // ------------------------------------------------
                 frame_counter++;
                 if (frame_counter >= FRAME_SKIP) {
                     frame_counter = 0;
@@ -144,10 +113,6 @@ int main(void) {
                     game_logic_update();
                 }
 
-                // ------------------------------------------------
-                // SEND TO HARDWARE — every loop for smooth animation
-                // But only actually write GPIO if values changed
-                // ------------------------------------------------
                 u32 new_pos = (((unsigned int)(pos_y >> FIXED_SHIFT) & 0x3FF) << 10) |
                                ((unsigned int)(pos_x >> FIXED_SHIFT) & 0x3FF);
                 u32 new_status = (u32)hud_pack_with_thrust(render_thrust_flag);
@@ -164,7 +129,6 @@ int main(void) {
                     last_extra_word = new_extra;
                 }
 
-                // Hex display — existing behavior
                 XGpio_DiscreteWrite(&Gpio_keycode, 1,
                     kbdbuf.keycode[0]          |
                     (kbdbuf.keycode[1] <<  8)  |
